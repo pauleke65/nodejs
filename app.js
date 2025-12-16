@@ -1,21 +1,37 @@
+// Import Express.js
 const express = require('express');
-const path = require('path');
-const indexRouter = require('./routes/index');
 
+// Create an Express app
 const app = express();
-const PORT = 3000;
 
-// Serve static files from the "public" directory
-app.use(express.static(path.join(__dirname, 'public')));
+// Middleware to parse JSON bodies
+app.use(express.json());
 
-// Use the router for handling routes
-app.use('/', indexRouter);
+// Set port and verify_token
+const port = process.env.PORT || 3000;
+const verifyToken = "orderlink-whatsapp-superverify";
 
-// Catch-all route for handling 404 errors
-app.use((req, res, next) => {
-    res.status(404).sendFile(path.join(__dirname, 'views', '404.html'));
-  });
+// Route for GET requests
+app.get('/', (req, res) => {
+  const { 'hub.mode': mode, 'hub.challenge': challenge, 'hub.verify_token': token } = req.query;
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}/`);
+  if (mode === 'subscribe' && token === verifyToken) {
+    console.log('WEBHOOK VERIFIED');
+    res.status(200).send(challenge);
+  } else {
+    res.status(403).end();
+  }
+});
+
+// Route for POST requests
+app.post('/', (req, res) => {
+  const timestamp = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  console.log(`\n\nWebhook received ${timestamp}\n`);
+  console.log(JSON.stringify(req.body, null, 2));
+  res.status(200).end();
+});
+
+// Start the server
+app.listen(port, () => {
+  console.log(`\nListening on port ${port}\n`);
 });
